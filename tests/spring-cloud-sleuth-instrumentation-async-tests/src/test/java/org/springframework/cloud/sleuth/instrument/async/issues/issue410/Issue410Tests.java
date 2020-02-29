@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -325,7 +326,7 @@ class AsyncTask {
 	ThreadPoolTaskScheduler threadPoolTaskScheduler;
 
 	@Autowired
-	ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+	ScheduledExecutorService scheduledThreadPoolExecutor;
 
 	private AtomicReference<Span> span = new AtomicReference<>();
 

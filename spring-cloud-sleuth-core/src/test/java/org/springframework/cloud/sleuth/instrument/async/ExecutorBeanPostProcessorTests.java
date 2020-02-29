@@ -363,11 +363,47 @@ public class ExecutorBeanPostProcessorTests {
 				this.beanFactory);
 
 		AsyncTaskExecutor wrappedExecutor = (AsyncTaskExecutor) beanPostProcessor
-				.postProcessAfterInitialization(new DirectTaskExecutor(), "taskExecutor");
+				.postProcessAfterInitialization(new AsyncTaskExecutorWithFinalMethod(), "taskExecutor");
 
 		then(AopUtils.isJdkDynamicProxy(wrappedExecutor)).isTrue();
 		then(AopUtils.isCglibProxy(wrappedExecutor)).isFalse();
 		then(wrappedExecutor.submit(() -> "done").get()).isEqualTo("done");
+	}
+
+	@Test
+	public void should_use_jdk_proxy_when_executor_has_any_final_methods() {
+		ExecutorBeanPostProcessor beanPostProcessor = new ExecutorBeanPostProcessor(
+				this.beanFactory);
+
+		Executor wrappedExecutor = (Executor) beanPostProcessor
+				.postProcessAfterInitialization(new ExecutorWithFinalMethod(),
+						"executorWithFinalMethod");
+
+		then(AopUtils.isJdkDynamicProxy(wrappedExecutor)).isTrue();
+		then(AopUtils.isCglibProxy(wrappedExecutor)).isFalse();
+		AtomicBoolean wasCalled = new AtomicBoolean(false);
+		wrappedExecutor.execute(() -> {
+			wasCalled.set(true);
+		});
+		then(wasCalled).isTrue();
+	}
+
+	@Test
+	public void should_use_jdk_proxy_when_executor_has_an_inherited_final_methods() {
+		ExecutorBeanPostProcessor beanPostProcessor = new ExecutorBeanPostProcessor(
+				this.beanFactory);
+
+		Executor wrappedExecutor = (Executor) beanPostProcessor
+				.postProcessAfterInitialization(new ExecutorWithInheritedFinalMethod(),
+						"executorWithFinalMethod");
+
+		then(AopUtils.isJdkDynamicProxy(wrappedExecutor)).isTrue();
+		then(AopUtils.isCglibProxy(wrappedExecutor)).isFalse();
+		AtomicBoolean wasCalled = new AtomicBoolean(false);
+		wrappedExecutor.execute(() -> {
+			wasCalled.set(true);
+		});
+		then(wasCalled).isTrue();
 	}
 
 	@Test
@@ -481,7 +517,7 @@ public class ExecutorBeanPostProcessorTests {
 
 	}
 
-	static class DirectTaskExecutor extends SimpleAsyncTaskExecutor {
+	static class AsyncTaskExecutorWithFinalMethod extends SimpleAsyncTaskExecutor {
 
 		@Override
 		public final <T> Future<T> submit(Callable<T> callable) {
@@ -491,6 +527,29 @@ public class ExecutorBeanPostProcessorTests {
 		@Override
 		protected void doExecute(Runnable task) {
 			task.run();
+		}
+
+	}
+
+	static class ExecutorWithFinalMethod implements Executor {
+
+		@Override
+		public void execute(Runnable command) {
+			command.run();
+		}
+
+		public final void foo() {
+
+		}
+
+	}
+
+	static class ExecutorWithInheritedFinalMethod extends ExecutorWithFinalMethod
+			implements Executor {
+
+		@Override
+		public void execute(Runnable command) {
+			command.run();
 		}
 
 	}

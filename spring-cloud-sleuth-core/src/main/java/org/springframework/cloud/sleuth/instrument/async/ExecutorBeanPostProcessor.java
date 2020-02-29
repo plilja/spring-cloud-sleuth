@@ -120,9 +120,9 @@ class ExecutorBeanPostProcessor implements BeanPostProcessor {
 
 	private Object wrapExecutor(Object bean) {
 		Executor executor = (Executor) bean;
-		boolean methodFinal = anyFinalMethods(executor, Executor.class);
+		boolean methodsFinal = anyFinalMethods(executor.getClass());
 		boolean classFinal = Modifier.isFinal(bean.getClass().getModifiers());
-		boolean cglibProxy = !methodFinal && !classFinal;
+		boolean cglibProxy = !methodsFinal && !classFinal;
 		try {
 			return createProxy(bean, cglibProxy,
 					new ExecutorMethodInterceptor<>(executor, this.beanFactory));
@@ -144,7 +144,7 @@ class ExecutorBeanPostProcessor implements BeanPostProcessor {
 	private Object wrapThreadPoolTaskExecutor(Object bean) {
 		ThreadPoolTaskExecutor executor = (ThreadPoolTaskExecutor) bean;
 		boolean classFinal = Modifier.isFinal(bean.getClass().getModifiers());
-		boolean methodsFinal = anyFinalMethods(executor, ThreadPoolTaskExecutor.class);
+		boolean methodsFinal = anyFinalMethods(executor.getClass());
 		boolean cglibProxy = !classFinal && !methodsFinal;
 		return createThreadPoolTaskExecutorProxy(bean, cglibProxy, executor);
 	}
@@ -152,8 +152,8 @@ class ExecutorBeanPostProcessor implements BeanPostProcessor {
 	private Object wrapExecutorService(Object bean) {
 		ExecutorService executor = (ExecutorService) bean;
 		boolean classFinal = Modifier.isFinal(bean.getClass().getModifiers());
-		boolean methodFinal = anyFinalMethods(executor, ExecutorService.class);
-		boolean cglibProxy = !classFinal && !methodFinal;
+		boolean methodsFinal = anyFinalMethods(executor.getClass());
+		boolean cglibProxy = !classFinal && !methodsFinal;
 		return createExecutorServiceProxy(bean, cglibProxy, executor);
 	}
 
@@ -168,7 +168,7 @@ class ExecutorBeanPostProcessor implements BeanPostProcessor {
 	private Object wrapAsyncTaskExecutor(Object bean) {
 		AsyncTaskExecutor executor = (AsyncTaskExecutor) bean;
 		boolean classFinal = Modifier.isFinal(bean.getClass().getModifiers());
-		boolean methodsFinal = anyFinalMethods(executor, AsyncTaskExecutor.class);
+		boolean methodsFinal = anyFinalMethods(executor.getClass());
 		boolean cglibProxy = !classFinal && !methodsFinal;
 		return createAsyncTaskExecutorProxy(bean, cglibProxy, executor);
 	}
@@ -304,12 +304,11 @@ class ExecutorBeanPostProcessor implements BeanPostProcessor {
 		return this.sleuthAsyncProperties;
 	}
 
-	private static <T> boolean anyFinalMethods(T object, Class<T> iface) {
+	private static <T> boolean anyFinalMethods(Class<T> clazz) {
 		try {
-			for (Method method : ReflectionUtils.getDeclaredMethods(iface)) {
-				Method m = ReflectionUtils.findMethod(object.getClass(), method.getName(),
-						method.getParameterTypes());
-				if (m != null && Modifier.isFinal(m.getModifiers())) {
+			for (Method method : ReflectionUtils.getAllDeclaredMethods(clazz)) {
+				if (Modifier.isFinal(method.getModifiers())
+						&& !Object.class.equals(method.getDeclaringClass())) {
 					return true;
 				}
 			}
